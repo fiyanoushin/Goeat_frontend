@@ -1,0 +1,451 @@
+{
+  "products": [
+    {
+      "id": "1",
+      "name": "Strawberry Cheesecake",
+      "price": "300",
+      "image": "/assets/cheese.jpg",
+      "category": "Cake",
+      "description": "Deliciously creamy strawberry cheesecake with biscuit base",
+      "brand": "SweetBite"
+    },
+    {
+      "id": "2",
+      "name": "Classic Brownie",
+      "price": "150",
+      "image": "/assets/brownie.jpg",
+      "category": "Brownie",
+      "description": "Fudgy chocolate brownie topped with choco chips",
+      "brand": "FudgeFactory"
+    },
+    {
+      "id": "3",
+      "name": "Vanilla Cupcake",
+      "price": 89,
+      "image": "/assets/cupcake.jpg",
+      "category": "Cupcake",
+      "description": "Soft vanilla cupcake with whipped frosting",
+      "brand": "CupcakeHeaven"
+    },
+    {
+      "id": "4",
+      "name": "Chocolate Mousse",
+      "price": 199,
+      "image": "/assets/mousse.jpg",
+      "category": "Mousse",
+      "description": "Rich chocolate mousse with dark choco flakes",
+      "brand": "MousseMood"
+    },
+    {
+      "id": "5",
+      "name": "Red Velvet Cake",
+      "price": 399,
+      "image": "/assets/red_velvet.jpg",
+      "category": "Cake",
+      "description": "Moist red velvet layered with cream cheese frosting",
+      "brand": "SweetBite"
+    },
+    {
+      "id": "6",
+      "name": "Walnut Brownie",
+      "price": 179,
+      "image": "/assets/walnut_brownie.jpg",
+      "category": "Brownie",
+      "description": "Brownie filled with crunchy walnuts and fudge",
+      "brand": "FudgeFactory"
+    },
+    {
+      "id": "7",
+      "name": "Chocolate Cupcake",
+      "price": 99,
+      "image": "/assets/chocolate_cupcake.jpg",
+      "category": "Cupcake",
+      "description": "Decadent chocolate cupcake with choco frosting",
+      "brand": "CupcakeHeaven"
+    },
+    {
+      "id": "8",
+      "name": "Mango Mousse",
+      "price": 179,
+      "image": "/assets/mango_mousse.jpg",
+      "category": "Mousse",
+      "description": "Fresh mango mousse with whipped cream topping",
+      "brand": "MousseMood"
+    },
+    {
+      "id": "cb35",
+      "name": "Black Forest",
+      "brand": "swiggy",
+      "price": "50",
+      "category": "Cake",
+      "image": "/assets/forest.jpg",
+      "active": true
+    },
+    {
+      "id": "eb4c",
+      "name": "strawberry mousse",
+      "brand": "muu",
+      "price": "50",
+      "category": "Mousse",
+      "image": "/assets/pudd.jpg",
+      "active": true
+    },
+    {
+      "id": "77b4",
+      "name": "icecream",
+      "brand": "ice",
+      "price": "100",
+      "category": "mousse",
+      "image": "",
+      "active": true
+    }
+  ],
+  "users": [
+    {
+      "id": "1",
+      "name": "Fathima",
+      "email": "fathima@example.com",
+      "password": "123456",
+      "isBlocked": false
+    },
+    {
+      "id": "17a0",
+      "name": "fiya",
+      "email": "fiya@gmail.com",
+      "password": "12",
+      "isBlocked": false
+    },
+    {
+      "id": "admin1",
+      "name": "Admin",
+      "email": "admin@example.com",
+      "password": "admin123",
+      "role": "admin",
+      "blocked": false
+    },
+    {
+      "id": "046d",
+      "name": "fadi",
+      "email": "fadi@gmail.com",
+      "password": "fad",
+      "role": "user"
+    },
+    {
+      "id": "8ee5",
+      "name": "shahidha",
+      "email": "shahidha@gmail.com",
+      "password": "shah",
+      "role": "user"
+    },
+    {
+      "id": "1530",
+      "name": "na",
+      "email": "na@gmail.com",
+      "password": "na",
+      "role": "user"
+    },
+    {
+      "id": "8832",
+      "name": "sachu",
+      "email": "sachu@gmail.com",
+      "password": "sac",
+      "role": "user"
+    },
+    {
+      "id": "4c78",
+      "name": "azeez",
+      "email": "azeez@gmail.com",
+      "password": "az",
+      "role": "user"
+    },
+    {
+      "id": "1753335060630",
+      "name": "koya",
+      "email": "koya@gmail.com",
+      "password": "koya@gmail.com",
+      "role": "user",
+      "isBlocked": false
+    },
+    {
+      "id": "1753349981109",
+      "name": "niya",
+      "email": "niya@gmail.com",
+      "password": "niya@gmail.com",
+      "role": "user",
+      "isBlocked": false
+    },
+    {
+      "id": "1753353324193",
+      "name": "maru",
+      "email": "maru@gmail.com",
+      "password": "maru@gmail.com",
+      "role": "user",
+      "isBlocked": false
+    },
+    {
+      "id": "1753354032841",
+      "name": "nick",
+      "email": "nick@gmail.com",
+      "password": "nick@gmail.com",
+      "role": "user",
+      "isBlocked": false
+    }
+  ],
+  "cart": [
+    {
+      "id": "c1",
+      "userId": "1",
+      "productId": "3",
+      "quantity": 1
+    },
+    {
+      "id": "c2",
+      "userId": "1",
+      "productId": "7",
+      "quantity": 1
+    },
+    {
+      "id": "1",
+      "name": "Strawberry Cheesecake",
+      "price": "300",
+      "image": "/assets/cheese.jpg",
+      "category": "Cake",
+      "description": "Deliciously creamy strawberry cheesecake with biscuit base",
+      "brand": "SweetBite",
+      "quantity": 1,
+      "userId": "1753349981109"
+    }
+  ],
+  "wishlist": [
+    {
+      "id": "w1",
+      "userId": "1",
+      "productId": "2"
+    },
+    {
+      "id": "5",
+      "name": "Red Velvet Cake",
+      "price": 399,
+      "image": "/assets/red_velvet.jpg",
+      "category": "Cake",
+      "description": "Moist red velvet layered with cream cheese frosting",
+      "brand": "SweetBite",
+      "userId": "1753349981109"
+    }
+  ],
+  "orders": [
+    {
+      "id": "o1",
+      "userId": "1",
+      "items": [
+        {
+          "id": "2",
+          "name": "Classic Brownie",
+          "price": 149,
+          "image": "/assets/brownie.jpg",
+          "category": "Brownie",
+          "description": "Fudgy chocolate brownie topped with choco chips",
+          "brand": "FudgeFactory",
+          "quantity": 5
+        }
+      ],
+      "total": 745,
+      "date": "22/7/2025, 4:30:15 pm",
+      "status": "Delivered"
+    },
+    {
+      "id": "o2",
+      "userId": "1",
+      "items": [
+        {
+          "id": "2",
+          "name": "Classic Brownie",
+          "price": 149,
+          "image": "/assets/brownie.jpg",
+          "category": "Brownie",
+          "description": "Fudgy chocolate brownie topped with choco chips",
+          "brand": "FudgeFactory",
+          "quantity": 5
+        }
+      ],
+      "total": 745,
+      "date": "22/7/2025, 4:30:45 pm",
+      "status": "Delivered"
+    },
+    {
+      "id": "1753335125332",
+      "items": [
+        {
+          "id": "2",
+          "name": "Classic Brownie",
+          "price": "150",
+          "image": "/assets/brownie.jpg",
+          "category": "Brownie",
+          "description": "Fudgy chocolate brownie topped with choco chips",
+          "brand": "FudgeFactory",
+          "quantity": 3,
+          "userId": "1753335060630"
+        }
+      ],
+      "total": 450,
+      "date": "24/7/2025, 11:02:05 am",
+      "status": "Delivered",
+      "userId": "1753335060630",
+      "userEmail": "koya@gmail.com",
+      "user": {
+        "name": "koya",
+        "email": "koya@gmail.com",
+        "phone": "4567897920",
+        "address": {
+          "fullName": "koya",
+          "phone": "4567897920",
+          "address1": "maka",
+          "address2": "",
+          "city": "mn",
+          "pincode": "123456",
+          "state": "nm"
+        }
+      }
+    },
+    {
+      "id": "1753350954688",
+      "items": [
+        {
+          "id": "1",
+          "name": "Strawberry Cheesecake",
+          "price": "300",
+          "image": "/assets/cheese.jpg",
+          "category": "Cake",
+          "description": "Deliciously creamy strawberry cheesecake with biscuit base",
+          "brand": "SweetBite",
+          "quantity": 2,
+          "userId": "1753349981109"
+        }
+      ],
+      "total": 600,
+      "date": "24/7/2025, 3:25:54 pm",
+      "status": "Shipped",
+      "userId": "1753349981109",
+      "userEmail": "niya@gmail.com",
+      "user": {
+        "name": "niya",
+        "email": "niya@gmail.com",
+        "phone": "1234567890",
+        "address": {
+          "fullName": "niya",
+          "phone": "1234567890",
+          "address1": "palliyalil",
+          "address2": "",
+          "city": "mlp",
+          "pincode": "676517",
+          "state": "kerala"
+        }
+      }
+    },
+    {
+      "id": 1753353392414,
+      "items": [
+        {
+          "id": "cb35",
+          "name": "Black Forest",
+          "brand": "swiggy",
+          "price": "50",
+          "category": "Cake",
+          "image": "/assets/forest.jpg",
+          "active": true,
+          "quantity": 2,
+          "userId": "1753353324193"
+        }
+      ],
+      "total": 100,
+      "date": "24/7/2025, 4:06:32 pm",
+      "status": "Processing",
+      "userId": "1753353324193",
+      "userEmail": "maru@gmail.com",
+      "user": {
+        "name": "maru",
+        "email": "maru@gmail.com",
+        "phone": "6786443729",
+        "address": {
+          "fullName": "maru",
+          "phone": "6786443729",
+          "address1": "qqq",
+          "address2": "www",
+          "city": "aa",
+          "pincode": "123456",
+          "state": "ss"
+        }
+      }
+    },
+    {
+      "id": "1753354098298",
+      "items": [
+        {
+          "id": "5",
+          "name": "Red Velvet Cake",
+          "price": 399,
+          "image": "/assets/red_velvet.jpg",
+          "category": "Cake",
+          "description": "Moist red velvet layered with cream cheese frosting",
+          "brand": "SweetBite",
+          "quantity": 1,
+          "userId": "1753354032841"
+        }
+      ],
+      "total": 399,
+      "date": "24/7/2025, 4:18:18 pm",
+      "status": "Delivered",
+      "userId": "1753354032841",
+      "userEmail": "nick@gmail.com",
+      "user": {
+        "name": "nick",
+        "email": "nick@gmail.com",
+        "phone": "9876543210",
+        "address": {
+          "fullName": "nick",
+          "phone": "9876543210",
+          "address1": "aa",
+          "address2": "aa",
+          "city": "aas",
+          "pincode": "123456",
+          "state": "saa"
+        }
+      }
+    },
+    {
+      "id": "1753357224605",
+      "items": [
+        {
+          "id": "1",
+          "name": "Strawberry Cheesecake",
+          "price": "300",
+          "image": "/assets/cheese.jpg",
+          "category": "Cake",
+          "description": "Deliciously creamy strawberry cheesecake with biscuit base",
+          "brand": "SweetBite",
+          "quantity": 1,
+          "userId": "1753349981109"
+        }
+      ],
+      "total": 300,
+      "date": "24/7/2025, 5:10:24 pm",
+      "status": "Processing",
+      "userId": "1753349981109",
+      "userEmail": "niya@gmail.com",
+      "user": {
+        "name": "niya",
+        "email": "niya@gmail.com",
+        "phone": "9876543210",
+        "address": {
+          "fullName": "niya",
+          "phone": "9876543210",
+          "address1": "abc",
+          "address2": "abc",
+          "city": "aa",
+          "pincode": "aa",
+          "state": "aa"
+        }
+      }
+    }
+  ]
+}
