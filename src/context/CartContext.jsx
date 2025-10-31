@@ -1,181 +1,163 @@
+// src/context/CartContext.jsx
 import { createContext, useContext, useEffect, useState } from "react";
 import { toast } from "react-toastify";
-import axios from "axios";
+import API from "../api";
 import { useAuth } from "./AuthContext";
 
 const CartContext = createContext();
-
 export const useCart = () => useContext(CartContext);
 
 export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]);
   const { authUser } = useAuth();
 
+  // ---------------------
+  // Fetch cart items
+  // ---------------------
   const fetchCart = async () => {
-    if (!authUser?.id) {
+    if (!authUser) {
       setCartItems([]);
       return;
     }
 
     try {
-      const res = await axios.get(`http://localhost:3000/cart?userId=${authUser.id}`);
-      setCartItems(res.data);
-    } catch (error) {
-      console.error("Error fetching cart:", error);
+      const res = await API.get("cart/");
+      setCartItems(res.data || []);
+    } catch (err) {
+      console.error("Error fetching cart:", err.response?.data || err.message);
+      if (err.response?.status === 401) {
+        window.dispatchEvent(new CustomEvent("userLogout"));
+      }
       setCartItems([]);
     }
   };
 
+  // ---------------------
+  // Add to cart
+  // ---------------------
   const addToCart = async (product) => {
-    if (!authUser?.id) {
+    if (!authUser) {
       toast.error("Please login to add items to cart");
       return;
     }
 
-    const exist = cartItems?.find((item) => item?.id === product?.id);
-
-    if (!exist) {
-      try {
-        await axios.post("http://localhost:3000/cart", { 
-          ...product, 
-          quantity: 1,
-          userId: authUser.id
-        });
-        fetchCart();
-        toast.success(`${product.name} added to cart!`);
-      } catch (error) {
-        console.error("Error adding to cart:", error);
-        toast.error("Failed to add item to cart");
-      }
-    } else {
-      toast.info(
-        ({ closeToast }) => (
-          <div>
-            <p>{product.name} is already in cart.</p>
-            <div className="flex gap-3 mt-2">
-              <button
-                onClick={async () => {
-                  await increaseQty(product.id);
-                  toast.success(`Increased quantity of ${product.name}`);
-                  closeToast();
-                }}
-                className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded"
-              >
-                Add Again
-              </button>
-              <button
-                onClick={closeToast}
-                className="bg-gray-300 text-gray-800 px-3 py-1 rounded"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        ),
-        { autoClose: false }
-      );
-    }
-  };
-
-  const increaseQty = async (id) => {
-    if (!authUser?.id) return;
-
-    const item = cartItems.find((item) => item.id === id);
-    if (item) {
-      try {
-        // Find the cart item by both id and userId
-        const cartRes = await axios.get(`http://localhost:3000/cart?id=${id}&userId=${authUser.id}`);
-        const cartItem = cartRes.data[0];
-        
-        if (cartItem) {
-          await axios.patch(`http://localhost:3000/cart/${cartItem.id}`, {
-            quantity: item.quantity + 1,
-          });
-          fetchCart();
-        }
-      } catch (error) {
-        console.error("Error increasing quantity:", error);
-        toast.error("Failed to update quantity");
-      }
-    }
-  };
-
-  const decreaseQty = async (id) => {
-    if (!authUser?.id) return;
-
-    const item = cartItems.find((item) => item.id === id);
-    if (item) {
-      try {
-        const cartRes = await axios.get(`http://localhost:3000/cart?id=${id}&userId=${authUser.id}`);
-        const cartItem = cartRes.data[0];
-        
-        if (cartItem) {
-          if (item.quantity > 1) {
-            await axios.patch(`http://localhost:3000/cart/${cartItem.id}`, {
-              quantity: item.quantity - 1,
-            });
-          } else {
-            await axios.delete(`http://localhost:3000/cart/${cartItem.id}`);
-          }
-          fetchCart();
-        }
-      } catch (error) {
-        console.error("Error decreasing quantity:", error);
-        toast.error("Failed to update quantity");
-      }
-    }
-  };
-
-  const removeFromCart = async (id) => {
-    if (!authUser?.id) return;
+    const existingItem = cartItems.find(
+      (item) =>
+        item.product?.id === product.id ||
+        item.product === product.id // handle both serialized and nested
+    );
 
     try {
-      const cartRes = await axios.get(`http://localhost:3000/cart?id=${id}&userId=${authUser.id}`);
-      const cartItem = cartRes.data[0];
-      
-      if (cartItem) {
-        await axios.delete(`http://localhost:3000/cart/${cartItem.id}`);
-        fetchCart();
-        toast.success("Item removed from cart");
+      if (!existingItem) {
+        const res = await API.post("cart/", { product: product.id, quantity: 1 });
+        setCartItems((prev) => [...prev, res.data]);
+        toast.success(`${product.name} added to cart!`);
+      } else {
+        const updatedQty = existingItem.quantity + 1;
+        await API.patch(`cart/${existingItem.id}/`, { quantity: updatedQty });
+
+        setCartItems((prev) =>
+          prev.map((i) =>
+            i.id === existingItem.id ? { ...i, quantity: updatedQty } : i
+          )
+        );
+        toast.success(`Increased quantity of ${product.name}`);
       }
-    } catch (error) {
-      console.error("Error removing from cart:", error);
+    } catch (err) {
+      console.error("Error adding to cart:", err.response?.data || err.message);
+      if (err.response?.status === 401) {
+        window.dispatchEvent(new CustomEvent("userLogout"));
+      } else {
+        toast.error("Failed to add item to cart");
+      }
+    }
+  };
+
+  // ---------------------
+  // Remove from cart
+  // ---------------------
+  const removeFromCart = async (cartId) => {
+    try {
+      await API.delete(`cart/${cartId}/`);
+      setCartItems((prev) => prev.filter((i) => i.id !== cartId));
+      toast.success("Item removed from cart");
+    } catch (err) {
+      console.error("Error removing item:", err.response?.data || err.message);
       toast.error("Failed to remove item");
     }
   };
 
-  const clearCart = async () => {
-    if (!authUser?.id) return;
-
+  // ---------------------
+  // Increase / Decrease quantity
+  // ---------------------
+  const updateQuantity = async (cartId, newQty) => {
     try {
-      // Get all cart items for this user
-      const userCartItems = await axios.get(`http://localhost:3000/cart?userId=${authUser.id}`);
-      
-      // Delete each item
-      const deletePromises = userCartItems.data.map(item => 
-        axios.delete(`http://localhost:3000/cart/${item.id}`)
+      if (newQty < 1) return removeFromCart(cartId);
+
+      await API.patch(`cart/${cartId}/`, { quantity: newQty });
+      setCartItems((prev) =>
+        prev.map((i) => (i.id === cartId ? { ...i, quantity: newQty } : i))
       );
-      
-      await Promise.all(deletePromises);
-      setCartItems([]);
-    } catch (error) {
-      console.error("Error clearing cart:", error);
+    } catch (err) {
+      console.error("Error updating quantity:", err.response?.data || err.message);
+      toast.error("Failed to update quantity");
     }
   };
 
+  const increaseQty = (cartId) => {
+    const item = cartItems.find((i) => i.id === cartId);
+    if (item) updateQuantity(cartId, item.quantity + 1);
+  };
+
+  const decreaseQty = (cartId) => {
+    const item = cartItems.find((i) => i.id === cartId);
+    if (item) updateQuantity(cartId, item.quantity - 1);
+  };
+
+  // ---------------------
+  // Clear cart (local + backend)
+  // ---------------------
+  const clearCart = async () => {
+    try {
+      await API.delete("cart/clear/"); // assume backend supports this endpoint
+    } catch (err) {
+      console.warn("Backend clearCart not supported, clearing local only.");
+    } finally {
+      setCartItems([]);
+      toast.success("Cart cleared after successful payment");
+    }
+  };
+
+  // ---------------------
+  // Clear cart on logout
+  // ---------------------
+  useEffect(() => {
+    const handleLogout = () => {
+      setCartItems([]);
+    };
+    window.addEventListener("userLogout", handleLogout);
+    return () => window.removeEventListener("userLogout", handleLogout);
+  }, []);
+
+  // ---------------------
+  // Fetch on login
+  // ---------------------
   useEffect(() => {
     fetchCart();
   }, [authUser]);
 
   return (
-    <CartContext.Provider value={{ 
-      cartItems, 
-      addToCart, 
-      removeFromCart, 
-      increaseQty, 
-      decreaseQty, 
-      clearCart 
-    }}>
+    <CartContext.Provider
+      value={{
+        cartItems,
+        addToCart,
+        removeFromCart,
+        increaseQty,
+        decreaseQty,
+        fetchCart,
+        clearCart,
+      }}
+    >
       {children}
     </CartContext.Provider>
   );

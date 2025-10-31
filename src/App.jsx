@@ -13,6 +13,7 @@ import Login from "./pages/Login";
 import CategoryPage from "./pages/CategoryPage";
 import Profile from "./pages/Profile";
 import ChangePassword from "./pages/ChangePassword";
+import Shop from "./pages/Shop";
 
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -41,6 +42,8 @@ function App() {
         {/* Public Routes */}
         <Route path="/" element={<Home />} />
         <Route path="/menu" element={<Menu />} />
+        <Route path="/shop" element={<Shop />} />
+
         <Route path="/product/:id" element={<ProductDetails />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<LoginRedirect />} />

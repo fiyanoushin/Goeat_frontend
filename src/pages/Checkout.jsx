@@ -3,12 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useAuth } from "../context/AuthContext";
 import { useState } from "react";
+import API from "../api";
 
 const Checkout = () => {
   const { cartItems, clearCart } = useCart();
   const navigate = useNavigate();
-  const { authUser } = useAuth();
+  const { authUser, logout } = useAuth();
 
+  const [loading, setLoading] = useState(false);
   const [address, setAddress] = useState({
     fullName: authUser?.name || "",
     phone: "",
@@ -16,7 +18,7 @@ const Checkout = () => {
     address2: "",
     city: "",
     pincode: "",
-    state: ""
+    state: "",
   });
 
   const handleChange = (e) => {
@@ -24,12 +26,28 @@ const Checkout = () => {
   };
 
   const totalAmount = cartItems.reduce(
-    (acc, item) => acc + parseFloat(item.price) * item.quantity,
+    (acc, item) => acc + parseFloat(item.product_details.price) * item.quantity,
     0
   );
 
+  // 🧩 Load Razorpay script dynamically (safe for Vercel)
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      if (document.querySelector("#razorpay-script")) return resolve(true);
+
+      const script = document.createElement("script");
+      script.id = "razorpay-script";
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
   const handlePlaceOrder = async () => {
-    if (!authUser?.id) {
+    if (loading) return; // prevent double clicks
+
+    if (!authUser) {
       toast.error("Please login to place an order");
       navigate("/login");
       return;
@@ -46,44 +64,103 @@ const Checkout = () => {
       return;
     }
 
-    const newOrder = {
-      id: Date.now().toString(),
-      items: cartItems,
-      total: totalAmount,
-      date: new Date().toLocaleString(),
-      status: "Processing",
-      userId: authUser.id,
-      userEmail: authUser.email,
-      user: {
-        name: fullName,
-        email: authUser.email,
-        phone,
-        address,
-      },
-    };
+    setLoading(true);
 
     try {
-      await fetch("http://localhost:3000/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newOrder),
-      });
+      const orderPayload = {
+        items: cartItems.map((item) => ({
+          product: item.product_details?.id || item.product?.id || item.id,
+          quantity: item.quantity,
+        })),
+        total: totalAmount,
+        address,
+      };
 
-      await clearCart();
-      toast.success("🎉 Order placed successfully!");
-      navigate("/orders");
+      // 1️⃣ Create order in backend
+      const res = await API.post("orders/create/", orderPayload);
+      const data = res.data;
+
+      if (!data?.razorpay_order_id) {
+        toast.error("Backend did not return a valid Razorpay order ID");
+        setLoading(false);
+        return;
+      }
+
+      // 2️⃣ Load Razorpay script
+      const loaded = await loadRazorpayScript();
+      if (!loaded) {
+        toast.error("Failed to load Razorpay. Try again.");
+        setLoading(false);
+        return;
+      }
+
+      // 3️⃣ Razorpay checkout options
+      const options = {
+        key: process.env.REACT_APP_RAZORPAY_KEY || "rzp_test_RX3p5au36kGfhF", // ✅ test key
+        amount: data.amount,
+        currency: data.currency,
+        name: "Dessert Shop",
+        description: "Order Payment",
+        order_id: data.razorpay_order_id,
+        handler: async (response) => {
+          try {
+            const verifyRes = await API.post("orders/verify-payment/", {
+              order_id: data.order_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+
+            if (verifyRes.status === 200) {
+              clearCart();
+              toast.success("🎉 Payment successful! Order placed.");
+              navigate("/orders");
+            } else {
+              toast.error("❌ Payment verification failed.");
+            }
+          } catch (err) {
+            console.error("Payment verification error:", err);
+            toast.error("❌ Payment verification failed.");
+          } finally {
+            setLoading(false);
+          }
+        },
+        prefill: {
+          name: fullName,
+          email: authUser.email,
+          contact: phone,
+        },
+        theme: { color: "#f97316" },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on("payment.failed", (resp) => {
+        console.warn("Payment failed:", resp.error);
+        toast.error("❌ Payment failed or cancelled.");
+        setLoading(false);
+      });
+      rzp.open();
     } catch (err) {
-      toast.error("❌ Failed to place order.");
-      console.error("Order error:", err);
+      console.error("Place order error:", err.response?.data || err.message);
+
+      if (err.response?.status === 401) {
+        toast.error("Session expired. Please log in again.");
+        logout();
+      } else {
+        toast.error(err.response?.data?.error || "Failed to place order");
+      }
+
+      setLoading(false);
     }
   };
 
+  // ⚠️ Guard UI (login + cart checks)
   if (!authUser) {
     return (
-      <div className="min-h-screen bg-pink-50 px-4 py-10 flex justify-center items-center">
-        <div className="bg-white p-8 rounded-2xl shadow-xl text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Please Login</h2>
-          <p className="text-gray-600 mb-6">You need to login to proceed with checkout</p>
+      <div className="min-h-screen bg-pink-50 flex justify-center items-center">
+        <div className="bg-white p-8 rounded-2xl shadow-lg text-center">
+          <h2 className="text-2xl font-bold mb-4 text-gray-800">Please Login</h2>
+          <p className="text-gray-600 mb-6">Login to continue with checkout.</p>
           <button
             onClick={() => navigate("/login")}
             className="bg-pink-600 hover:bg-pink-700 text-white px-6 py-3 rounded-lg"
@@ -97,10 +174,10 @@ const Checkout = () => {
 
   if (cartItems.length === 0) {
     return (
-      <div className="min-h-screen bg-pink-50 px-4 py-10 flex justify-center items-center">
-        <div className="bg-white p-8 rounded-2xl shadow-xl text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Cart is Empty</h2>
-          <p className="text-gray-600 mb-6">Add some items to your cart before checkout</p>
+      <div className="min-h-screen bg-pink-50 flex justify-center items-center">
+        <div className="bg-white p-8 rounded-2xl shadow-lg text-center">
+          <h2 className="text-2xl font-bold mb-4 text-gray-800">Cart is Empty</h2>
+          <p className="text-gray-600 mb-6">Add some items before checkout.</p>
           <button
             onClick={() => navigate("/menu")}
             className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-lg"
@@ -112,6 +189,7 @@ const Checkout = () => {
     );
   }
 
+  // 🧾 Main checkout form
   return (
     <div className="min-h-screen bg-pink-50 px-4 py-10 flex justify-center">
       <div className="bg-white shadow-xl rounded-2xl p-6 max-w-3xl w-full">
@@ -119,7 +197,7 @@ const Checkout = () => {
           🧾 Checkout
         </h2>
 
-        {/* Products List */}
+        {/* Products list */}
         <div className="mb-6 space-y-4">
           {cartItems.map((item) => (
             <div
@@ -127,93 +205,74 @@ const Checkout = () => {
               className="flex items-center gap-4 border p-4 rounded-xl shadow-sm"
             >
               <img
-                src={item.image}
-                alt={item.name}
+                src={item.product_details.image}
+                alt={item.product_details.name}
                 className="h-20 w-20 object-cover rounded-md"
               />
               <div>
-                <h3 className="font-semibold text-lg">{item.name}</h3>
-                <p className="text-gray-500">Brand: {item.brand || "N/A"}</p>
+                <h3 className="font-semibold text-lg">
+                  {item.product_details.name}
+                </h3>
+                <p className="text-gray-500">
+                  Brand: {item.product_details.brand || "N/A"}
+                </p>
                 <p className="text-gray-700">Qty: {item.quantity}</p>
               </div>
               <p className="ml-auto text-orange-600 font-semibold">
-                ₹{(parseFloat(item.price) * item.quantity).toFixed(2)}
+                ₹
+                {(
+                  parseFloat(item.product_details.price) * item.quantity
+                ).toFixed(2)}
               </p>
             </div>
           ))}
         </div>
 
         {/* Address Form */}
-        <h3 className="text-xl font-semibold text-gray-800 mb-4">Shipping Details</h3>
+        <h3 className="text-xl font-semibold text-gray-800 mb-4">
+          Shipping Details
+        </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <input
-            type="text"
-            name="fullName"
-            value={address.fullName}
-            onChange={handleChange}
-            placeholder="Full Name"
-            className="border rounded p-2"
-          />
-          <input
-            type="text"
-            name="phone"
-            value={address.phone}
-            onChange={handleChange}
-            placeholder="Phone Number"
-            className="border rounded p-2"
-          />
-          <input
-            type="text"
-            name="address1"
-            value={address.address1}
-            onChange={handleChange}
-            placeholder="Address Line 1"
-            className="border rounded p-2 col-span-1 sm:col-span-2"
-          />
-          <input
-            type="text"
-            name="address2"
-            value={address.address2}
-            onChange={handleChange}
-            placeholder="Address Line 2 (optional)"
-            className="border rounded p-2 col-span-1 sm:col-span-2"
-          />
-          <input
-            type="text"
-            name="city"
-            value={address.city}
-            onChange={handleChange}
-            placeholder="City"
-            className="border rounded p-2"
-          />
-          <input
-            type="text"
-            name="state"
-            value={address.state}
-            onChange={handleChange}
-            placeholder="State"
-            className="border rounded p-2"
-          />
-          <input
-            type="text"
-            name="pincode"
-            value={address.pincode}
-            onChange={handleChange}
-            placeholder="Pincode"
-            className="border rounded p-2"
-          />
+          {[
+            "fullName",
+            "phone",
+            "address1",
+            "address2",
+            "city",
+            "state",
+            "pincode",
+          ].map((field, i) => (
+            <input
+              key={i}
+              type="text"
+              name={field}
+              value={address[field]}
+              onChange={handleChange}
+              placeholder={
+                field === "address2"
+                  ? "Address Line 2 (optional)"
+                  : field.replace(/([A-Z])/g, " $1").trim()
+              }
+              className="border rounded p-2"
+            />
+          ))}
         </div>
 
-        {/* Total and Button */}
+        {/* Total & Pay */}
         <div className="mt-8 border-t pt-4">
           <p className="text-xl font-bold text-gray-800 mb-4">
             Total: ₹{totalAmount.toFixed(2)}
           </p>
           <button
             onClick={handlePlaceOrder}
-            className="w-full bg-green-600 hover:bg-green-700 text-white text-lg py-3 rounded-lg transition"
+            disabled={loading}
+            className={`w-full font-semibold py-3 rounded-xl text-white transition ${
+              loading
+                ? "bg-orange-400 cursor-not-allowed"
+                : "bg-orange-500 hover:bg-orange-600"
+            }`}
           >
-            Place Order
+            {loading ? "Processing..." : "Place Order & Pay"}
           </button>
         </div>
       </div>

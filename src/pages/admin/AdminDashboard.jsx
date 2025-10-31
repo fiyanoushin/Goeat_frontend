@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-
+import API from "../../api";
+import { toast } from "react-toastify";
 import {
   ResponsiveContainer,
   PieChart,
@@ -21,82 +22,103 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
 
   const [stats, setStats] = useState({
-    users: 0,
-    products: 0,
-    orders: 0,
+    total_users: 0,
+    total_products: 0,
+    total_orders: 0,
+    total_revenue: 0,
   });
+  const [loading, setLoading] = useState(true);
 
-  const [totalRevenue, setTotalRevenue] = useState(0);
+  const fetchStats = async () => {
+    setLoading(true);
+    try {
+      const res = await API.get("admin/stats/");
+      setStats(res.data);
+      toast.success("Dashboard data refreshed ✅");
+    } catch (err) {
+      console.error("Error fetching stats:", err);
+      toast.error("Failed to fetch admin data ⚠️");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const [usersRes, productsRes, ordersRes] = await Promise.all([
-          fetch("http://localhost:3000/users"),
-          fetch("http://localhost:3000/products"),
-          fetch("http://localhost:3000/orders"),
-        ]);
-
-        const users = await usersRes.json();
-        const products = await productsRes.json();
-        const orders = await ordersRes.json();
-
-        setStats({
-          users: users.length,
-          products: products.length,
-          orders: orders.length,
-        });
-
-        const revenue = orders.reduce((acc, order) => acc + order.total, 0);
-        setTotalRevenue(revenue);
-      } catch (err) {
-        console.error("Failed to fetch admin stats", err);
-      }
-    };
-
     fetchStats();
   }, []);
 
   const handleLogout = () => {
     logout();
+    toast.info("Logged out successfully 👋");
     navigate("/login");
   };
 
   const pieData = [
-    { name: "Users", value: stats.users },
-    { name: "Products", value: stats.products },
-    { name: "Orders", value: stats.orders },
+    { name: "Users", value: stats.total_users },
+    { name: "Products", value: stats.total_products },
+    { name: "Orders", value: stats.total_orders },
   ];
 
   const COLORS = ["#6366F1", "#EC4899", "#F59E0B"];
 
-  const revenueData = [{ name: "Total Revenue (₹)", value: totalRevenue }];
+  // Dummy trend data (replace with real revenue trends later)
+  const revenueTrend = [
+    { month: "Jan", revenue: stats.total_revenue * 0.3 },
+    { month: "Feb", revenue: stats.total_revenue * 0.45 },
+    { month: "Mar", revenue: stats.total_revenue * 0.6 },
+    { month: "Apr", revenue: stats.total_revenue * 0.8 },
+    { month: "May", revenue: stats.total_revenue },
+  ];
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-[80vh] text-lg animate-pulse">
+        Loading dashboard...
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6">
-      <h2 className="text-3xl font-bold mb-6 text-pink-700">Welcome Admin 🎉</h2>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-blue-100 p-4 rounded shadow text-center">
-          <h3 className="text-lg font-semibold">Total Users</h3>
-          <p className="text-3xl font-bold text-blue-600">{stats.users}</p>
-        </div>
-        <div className="bg-green-100 p-4 rounded shadow text-center">
-          <h3 className="text-lg font-semibold">Total Products</h3>
-          <p className="text-3xl font-bold text-green-600">{stats.products}</p>
-        </div>
-        <div className="bg-yellow-100 p-4 rounded shadow text-center">
-          <h3 className="text-lg font-semibold">Total Orders</h3>
-          <p className="text-3xl font-bold text-yellow-600">{stats.orders}</p>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="flex justify-between items-center mb-8">
+        <h2 className="text-3xl font-bold text-pink-700">
+          Admin Dashboard 🎯
+        </h2>
+        <div className="flex gap-3">
+          <button
+            onClick={fetchStats}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+          >
+            Refresh
+          </button>
+          <button
+            onClick={handleLogout}
+            className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition"
+          >
+            Logout
+          </button>
         </div>
       </div>
 
-      {/* Combined Charts in Single Row */}
-      <div className="flex flex-col md:flex-row gap-6 bg-white p-6 rounded shadow mb-10">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <Card title="Users" value={stats.total_users} color="blue" />
+        <Card title="Products" value={stats.total_products} color="green" />
+        <Card title="Orders" value={stats.total_orders} color="yellow" />
+        <Card
+          title="Revenue (₹)"
+          value={stats.total_revenue.toLocaleString()}
+          color="pink"
+        />
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-white rounded-xl shadow-lg p-8">
         {/* Pie Chart */}
-        <div className="flex-1 min-w-[300px]">
-          <h3 className="text-xl font-semibold mb-4 text-center">Statistics Overview</h3>
+        <div>
+          <h3 className="text-xl font-semibold mb-4 text-gray-700 text-center">
+            System Overview
+          </h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
@@ -106,8 +128,8 @@ const AdminDashboard = () => {
                 outerRadius={100}
                 label
               >
-                {pieData.map((entry, index) => (
-                  <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                {pieData.map((_, i) => (
+                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Pie>
               <Tooltip />
@@ -116,60 +138,84 @@ const AdminDashboard = () => {
           </ResponsiveContainer>
         </div>
 
-        {/* Line Chart */}
-        <div className="flex-1 min-w-[300px]">
-          <h3 className="text-xl font-semibold mb-4 text-center">Total Revenue</h3>
+        {/* Revenue Trend Chart */}
+        <div>
+          <h3 className="text-xl font-semibold mb-4 text-gray-700 text-center">
+            Revenue Trend
+          </h3>
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart
-              data={revenueData}
-              margin={{ top: 10, right: 30, left: 30, bottom: 10 }}
-            >
+            <LineChart data={revenueTrend}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis allowDecimals={false} />
+              <XAxis dataKey="month" />
+              <YAxis />
               <Tooltip />
               <Line
                 type="monotone"
-                dataKey="value"
+                dataKey="revenue"
                 stroke="#10B981"
                 strokeWidth={3}
-                dot={{
-                  r: 6,
-                  stroke: "#065F46",
-                  strokeWidth: 2,
-                  fill: "#10B981",
-                }}
+                dot={{ r: 6, stroke: "#065F46", strokeWidth: 2 }}
               />
             </LineChart>
           </ResponsiveContainer>
-          <p className="text-center mt-4 text-lg font-bold text-green-600">
-            ₹{totalRevenue.toLocaleString()}
-          </p>
         </div>
       </div>
 
       {/* Navigation Buttons */}
-      <div className="flex flex-wrap gap-4">
-        <button
+      <div className="flex flex-wrap gap-4 mt-10">
+        <NavButton
+          label="Manage Products"
           onClick={() => navigate("/admin/manage-products")}
-          className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
-        >
-          Manage Products
-        </button>
-        <button
+          color="purple"
+        />
+        <NavButton
+          label="Manage Users"
           onClick={() => navigate("/admin/manage-users")}
-          className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
-        >
-          Manage Users
-        </button>
-        <button
-          onClick={handleLogout}
-          className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-        >
-          Logout
-        </button>
+          color="indigo"
+        />
+        <NavButton
+          label="Manage Orders"
+          onClick={() => navigate("/admin/manage-orders")}
+          color="green"
+        />
       </div>
     </div>
+  );
+};
+
+// ===== Subcomponents =====
+const Card = ({ title, value, color }) => {
+  const colors = {
+    blue: "bg-blue-100 text-blue-700",
+    green: "bg-green-100 text-green-700",
+    yellow: "bg-yellow-100 text-yellow-700",
+    pink: "bg-pink-100 text-pink-700",
+  };
+
+  return (
+    <div
+      className={`p-6 rounded-xl shadow-sm hover:shadow-md transition text-center ${colors[color]}`}
+    >
+      <h3 className="text-lg font-semibold mb-2">{title}</h3>
+      <p className="text-3xl font-bold">{value}</p>
+    </div>
+  );
+};
+
+const NavButton = ({ label, onClick, color }) => {
+  const colors = {
+    purple: "bg-purple-600 hover:bg-purple-700",
+    indigo: "bg-indigo-600 hover:bg-indigo-700",
+    green: "bg-green-600 hover:bg-green-700",
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      className={`${colors[color]} text-white px-6 py-2 rounded-lg transition`}
+    >
+      {label}
+    </button>
   );
 };
 

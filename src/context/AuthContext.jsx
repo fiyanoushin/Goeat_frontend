@@ -1,122 +1,123 @@
 import { createContext, useContext, useState, useEffect } from "react";
+import API from "../api";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [authUser, setAuthUser] = useState(null); // full user object
-  const [role, setRole] = useState(null);         // "admin" or "user"
+  const [authUser, setAuthUser] = useState(null);
+  const [role, setRole] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Check for stored user data on app load
+  // ---------------------
+  // Load user from localStorage
+  // ---------------------
   useEffect(() => {
-    const storedUser = localStorage.getItem('authUser');
-    const storedRole = localStorage.getItem('userRole');
-    
-    if (storedUser && storedRole) {
-      try {
-        setAuthUser(JSON.parse(storedUser));
-        setRole(storedRole);
-      } catch (error) {
-        console.error('Error parsing stored user data:', error);
-        localStorage.removeItem('authUser');
-        localStorage.removeItem('userRole');
+    try {
+      const access = localStorage.getItem("access");
+      const userData = localStorage.getItem("authUser");
+
+      if (access && userData) {
+        const parsedUser = JSON.parse(userData);
+        setAuthUser(parsedUser);
+        setRole(parsedUser.role);
       }
+    } catch (error) {
+      console.error("Error loading user:", error);
+      localStorage.removeItem("access");
+      localStorage.removeItem("refresh");
+      localStorage.removeItem("authUser");
+    } finally {
+      setLoading(false);
     }
+
+    // ✅ Handle forced logout (when token refresh fails)
+    const handleLogoutEvent = () => {
+      setAuthUser(null);
+      setRole(null);
+    };
+
+    window.addEventListener("userLogout", handleLogoutEvent);
+    return () => window.removeEventListener("userLogout", handleLogoutEvent);
   }, []);
 
+  // ---------------------
+  // Login
+  // ---------------------
   const login = async (email, password) => {
     try {
-      const res = await fetch(
-        `http://localhost:3000/users?email=${email}&password=${password}`
-      );
-      const data = await res.json();
+      const res = await API.post("login/", { email, password });
+      const { user, token } = res.data;
 
-      if (data.length > 0) {
-        const user = data[0];
-        
-        // Check if user is blocked
-        if (user.isBlocked) {
-          return { success: false, message: "Your account has been blocked. Please contact support." };
-        }
-        
-        setAuthUser(user);
-        setRole(user.role);
-        
-        // Store user data in localStorage for persistence
-        localStorage.setItem('authUser', JSON.stringify(user));
-        localStorage.setItem('userRole', user.role);
-        
-        return { success: true, role: user.role };
-      } else {
-        return { success: false, message: "Invalid credentials" };
-      }
+      localStorage.setItem("access", token.access);
+      localStorage.setItem("refresh", token.refresh);
+      localStorage.setItem("authUser", JSON.stringify(user));
+
+      setAuthUser(user);
+      setRole(user.role);
+
+      return { success: true, user, role: user.role, error: null };
     } catch (err) {
-      console.error('Login error:', err);
-      return { success: false, message: "Login failed" };
+      console.error("Login failed:", err.response?.data || err.message);
+      return {
+        success: false,
+        user: null,
+        role: null,
+        error: err.response?.data?.error || "Invalid email or password",
+      };
     }
   };
 
+  // ---------------------
+  // Register (no token)
+  // ---------------------
+  const register = async (userData) => {
+    try {
+      const res = await API.post("register/", userData);
+      if (res.status === 201) {
+        return { success: true, user: res.data.user, error: null };
+      }
+    } catch (err) {
+      console.error("Registration failed:", err.response?.data || err.message);
+      return {
+        success: false,
+        user: null,
+        error: err.response?.data?.error || "Registration failed",
+      };
+    }
+  };
+
+  // ---------------------
+  // Logout
+  // ---------------------
   const logout = () => {
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
+    localStorage.removeItem("authUser");
     setAuthUser(null);
     setRole(null);
-    
-    // Clear stored user data
-    localStorage.removeItem('authUser');
-    localStorage.removeItem('userRole');
-    
-    // Dispatch a custom event to notify other components about logout
-    window.dispatchEvent(new CustomEvent('userLogout'));
+    window.dispatchEvent(new CustomEvent("userLogout"));
   };
 
-  const register = async ({ name, email, password }) => {
-    try {
-      // Check for duplicate email first
-      const checkRes = await fetch(
-        `http://localhost:3000/users?email=${email}`
-      );
-      const existingUsers = await checkRes.json();
-
-      if (existingUsers.length > 0) {
-        return { error: "Email is already registered." };
-      }
-
-      const res = await fetch("http://localhost:3000/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: Date.now().toString(), // Generate unique ID
-          name,
-          email,
-          password,
-          role: "user", // default role
-          isBlocked: false
-        }),
-      });
-
-      if (!res.ok) {
-        return { error: "Failed to register user." };
-      }
-
-      return { success: true };
-    } catch (err) {
-      console.error("Registration error:", err);
-      return { error: "Something went wrong." };
-    }
-  };
-
+  // ---------------------
+  // Update user (e.g. profile edit)
+  // ---------------------
   const updateUser = (updatedUser) => {
     setAuthUser(updatedUser);
-    localStorage.setItem('authUser', JSON.stringify(updatedUser));
+    localStorage.setItem("authUser", JSON.stringify(updatedUser));
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      authUser, 
-      role, 
-      login, 
-      logout, 
-      register, 
-      updateUser 
-    }}>
+    <AuthContext.Provider
+      value={{
+        authUser,
+        role,
+        loading,
+        login,
+        register,
+        logout,
+        updateUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
